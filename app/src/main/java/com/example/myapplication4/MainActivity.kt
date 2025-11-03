@@ -5,19 +5,22 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.myapplication4.ui.theme.MyApplication4Theme
@@ -31,7 +34,6 @@ import com.google.firebase.ktx.Firebase
 data class UserProfile(val email: String = "", val name: String = "", val role: String = "")
 
 class MainActivity : ComponentActivity() {
-
     private lateinit var auth: FirebaseAuth
     private lateinit var firestore: FirebaseFirestore
 
@@ -76,7 +78,6 @@ class MainActivity : ComponentActivity() {
 fun AppContent(auth: FirebaseAuth, firestore: FirebaseFirestore) {
     var currentUser by remember { mutableStateOf(auth.currentUser) }
 
-    // Listen to auth state changes
     DisposableEffect(auth) {
         val authListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             currentUser = firebaseAuth.currentUser
@@ -89,10 +90,15 @@ fun AppContent(auth: FirebaseAuth, firestore: FirebaseFirestore) {
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         if (currentUser == null) {
+            val context = LocalContext.current
             AuthScreen(
                 onLogin = { email, password ->
                     auth.signInWithEmailAndPassword(email, password)
-                        .addOnFailureListener { e -> Log.w("Auth", "signIn:failure", e) }
+                        .addOnFailureListener { e ->
+                            Log.w("Auth", "signIn:failure", e)
+                            val errorMessage = "Login Failed: ${e::class.java.simpleName}"
+                            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                        }
                 },
                 onSignUp = { email, password ->
                     auth.createUserWithEmailAndPassword(email, password)
@@ -103,7 +109,11 @@ fun AppContent(auth: FirebaseAuth, firestore: FirebaseFirestore) {
                                 firestore.collection("users").document(it.uid).set(userProfile)
                             }
                         }
-                        .addOnFailureListener { e -> Log.w("Auth", "signUp:failure", e) }
+                        .addOnFailureListener { e ->
+                            Log.w("Auth", "signUp:failure", e)
+                            val errorMessage = "Sign Up Failed: ${e::class.java.simpleName}"
+                            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                        }
                 }
             )
         } else {
@@ -118,7 +128,6 @@ fun AppContent(auth: FirebaseAuth, firestore: FirebaseFirestore) {
 fun LoggedInFlow(user: FirebaseUser, firestore: FirebaseFirestore, onSignOut: () -> Unit) {
     var userProfile by remember { mutableStateOf<UserProfile?>(null) }
 
-    // Fetch user profile from Firestore
     LaunchedEffect(user) {
         firestore.collection("users").document(user.uid).get()
             .addOnSuccessListener { document ->
@@ -132,7 +141,6 @@ fun LoggedInFlow(user: FirebaseUser, firestore: FirebaseFirestore, onSignOut: ()
     }
 
     if (userProfile == null) {
-        // Loading state while profile is being fetched
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -147,30 +155,63 @@ fun LoggedInScreen(userProfile: UserProfile, onSignOut: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Welcome, ${userProfile.name}", style = MaterialTheme.typography.headlineSmall)
-        Text("Role: ${userProfile.role}", style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = Modifier.height(32.dp))
-
-        // Role-based UI
-        when (userProfile.role) {
-            "student" -> {
-                Button(onClick = { /* TODO: Navigate to grades screen */ }) {
-                    Text("View My Grades")
+        Text("Welcome, ${userProfile.name}", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
+                Icon(Icons.Default.Person, contentDescription = "Role Icon")
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text("Your Role", style = MaterialTheme.typography.bodySmall)
+                    Text(userProfile.role.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
+        }
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        Text("Dashboard", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        when (userProfile.role) {
+            "student" -> {
+                ActionCard(
+                    title = "View My Grades",
+                    icon = Icons.Default.Face, 
+                    onClick = { /* TODO: Navigate to grades screen */ }
+                )
+            }
             "teacher" -> {
-                Button(onClick = { /* TODO: Navigate to manage grades screen */ }) {
-                    Text("Manage Student Grades")
-                }
+                ActionCard(
+                    title = "Manage Student Grades",
+                    icon = Icons.Default.Face, // Consider a different icon
+                    onClick = { /* TODO: Navigate to manage grades screen */ }
+                )
             }
         }
 
         Spacer(modifier = Modifier.weight(1f))
-        Button(onClick = onSignOut) {
+        Button(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
             Text("Sign Out")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ActionCard(title: String, icon: ImageVector, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(modifier = Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(40.dp))
+            Spacer(modifier = Modifier.width(24.dp))
+            Text(title, style = MaterialTheme.typography.titleLarge)
         }
     }
 }

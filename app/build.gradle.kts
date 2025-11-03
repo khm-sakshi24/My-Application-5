@@ -2,17 +2,17 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.google.services) // Correctly apply the plugin
+    alias(libs.plugins.google.services)
 }
 
 android {
     namespace = "com.example.myapplication4"
-    compileSdk = 36 // Restored original, correct SDK version
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.myapplication4"
         minSdk = 24
-        targetSdk = 36 // Restored original, correct SDK version
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -26,14 +26,16 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
+            // signingConfig = signingConfigs.getByName("release") // This is only for release builds
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11 // Restored original, correct Java version
-        targetCompatibility = JavaVersion.VERSION_11 // Restored original, correct Java version
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = "11" // Restored original, correct JVM target
+        jvmTarget = "11"
     }
     buildFeatures {
         compose = true
@@ -41,8 +43,8 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
