@@ -25,7 +25,7 @@ This repository contains the source code for a College Management Android App, d
 
 *(You should add screenshots of your app here. For example: a screenshot of the login screen, the student dashboard, and the teacher dashboard.)*
 
-<img src="path/to/your/screenshot1.png" width="250"> <img src="path/to/your/screenshot2.png" width="250">
+ <img src="path/to/your/screenshot2.png" width="250">
 
 ## 5. Setup and Installation
 
